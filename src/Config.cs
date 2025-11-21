@@ -6,8 +6,7 @@ namespace ModelEvaluator;
 public static class Config
 {
     // Server Settings
-    public const string BaseUrl = "http://localhost:1234/v1"; //LM Studio
-  
+    public const string BaseUrl = "http://localhost:1234/v1";
     public const string BaseAuthToken = "";
     public const bool UseAuth = false;
     public static readonly TimeSpan RequestTimeout = TimeSpan.FromMinutes(10);
@@ -26,10 +25,14 @@ public static class Config
     public static readonly string OutputDir = Path.Combine(ProjectPath, "output");
     
     // Instruction Test Settings
-    public const int MaxModelErrors = 3; // Skip model after this many errors
+    public const int MaxModelErrors = 3;
     public const double InstructionTestTemperature = 0.2;
     public const double InstructionTestTopP = 0.85;
-    
+    public const double InstructionTestPassThreshold = 0.8; // 80% pass rate required
+
+    // Reasoning Test Settings
+    public const double ReasoningTestMinScore = 7.0; // Minimum score out of 10
+
     // Conversation Test Settings
     public const double ConversationTestTemperature = 0.7;
     public const double ConversationTestTopP = 0.9;
@@ -50,7 +53,12 @@ public static class Config
     
     // Scoring Settings
     public const double HighQualityThreshold = 7.5;
-    public const int TopJudgeCount = 2; // Number of AutoJudges to select
+    public const int TopJudgeCount = 2;
+
+    // Context Window Test Settings
+    public const int ContextWindowDegradationThreshold_Graceful = 100_000;
+    public const int ContextWindowDegradationThreshold_Moderate = 60_000;
+    public const int ContextWindowDegradationThreshold_Sudden = 30_000;
     
     // Performance Settings
     public const int MaxParallelRequests = 1;

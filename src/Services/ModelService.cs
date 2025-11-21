@@ -72,7 +72,6 @@ public class ModelService
     /// </summary>
     public async Task<bool> WarmUpModelAsync(string modelName)
     {
-        //Console.WriteLine($"WarmUpModelAsync {modelName}");
         var request = new ChatRequest
         {
             Model = modelName,
