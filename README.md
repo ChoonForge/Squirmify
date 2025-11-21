@@ -29,6 +29,7 @@ Most LLM benchmarks rely on self-reported metrics and marketing claims. Squirmif
 ### 🎯 Comprehensive Testing Pipeline
 
 1. **Instruction Following Tests** (14 tests)
+   
    - JSON generation & validation
    - Tool calling scenarios
    - Format constraints
@@ -36,6 +37,7 @@ Most LLM benchmarks rely on self-reported metrics and marketing claims. Squirmif
    - Exact output matching
 
 2. **Reasoning Tests** (11 tests across 5 categories)
+   
    - Multi-step problems
    - Context retention
    - Logic & syllogisms
@@ -44,6 +46,7 @@ Most LLM benchmarks rely on self-reported metrics and marketing claims. Squirmif
    - Judge-based scoring (no brittle validators)
 
 3. **Context Window Stress Tests** (4 patterns)
+   
    - Needle in Haystack (8k tokens)
    - Instruction Retention (6k tokens)
    - Code Context Stress (10k tokens)
@@ -52,6 +55,7 @@ Most LLM benchmarks rely on self-reported metrics and marketing claims. Squirmif
    - Exposes recency bias
 
 4. **Conversation Tests** (8 scenarios across 4 domains)
+   
    - Code assistance (debugging, refactoring)
    - Customer support (password reset, feature explanation)
    - Casual chat (hobbies, weekend plans)
@@ -89,27 +93,31 @@ Most LLM benchmarks rely on self-reported metrics and marketing claims. Squirmif
 ### Setup
 
 1. Clone the repository:
-```bash
-git clone https://github.com/ChoonForge/Squirmify.git
-cd Squirmify
-```
+   
+   ```bash
+   git clone https://github.com/ChoonForge/Squirmify.git
+   cd Squirmify
+   ```
 
 2. Build the project:
-```bash
-cd src
-dotnet build
-```
+   
+   ```bash
+   cd src
+   dotnet build
+   ```
 
 3. Configure your model server in `src/Config.cs`:
-```csharp
-public const string BaseUrl = "http://localhost:1234/v1"; // LM Studio default
-```
+   
+   ```csharp
+   public const string BaseUrl = "http://localhost:1234/v1"; // LM Studio default
+   ```
 
 4. (Optional) Add base seed prompts to `src/base_seeds.jsonl`:
-```jsonl
-{"instruction":"Create a C# extension method to convert a string to title case.","tags":["code"]}
-{"instruction":"Explain how dependency injection works in ASP.NET Core.","tags":["instruction"]}
-```
+   
+   ```jsonl
+   {"instruction":"Create a C# extension method to convert a string to title case.","tags":["code"]}
+   {"instruction":"Explain how dependency injection works in ASP.NET Core.","tags":["instruction"]}
+   ```
 
 ---
 
@@ -123,6 +131,7 @@ dotnet run
 ```
 
 Squirmify will automatically:
+
 1. Load all available models from your server
 2. Run instruction following tests
 3. Run reasoning tests on qualified models
@@ -173,6 +182,7 @@ All results are saved to `output/`:
 ## Example Output
 
 ### Model Performance Summary
+
 ```
 ┌──────────────────────────┬───────────┬─────────┬────┬──────────┐
 │ Model                    │ Avg Score │ Avg t/s │ HQ │ Best Cat │
@@ -184,15 +194,16 @@ All results are saved to `output/`:
 ```
 
 ### Context Window Reality Check
+
 ```
-┌─────────────────────────┬──────────────┬─────────────────────┬──────────────┐
-│ Model                   │ Max Reliable │ First Hallucination │ Degradation  │
-├─────────────────────────┼──────────────┼─────────────────────┼──────────────┤
-│ qwen2.5-7b-instruct     │ 8,000        │ 10,000              │ graceful     │
-│ llama-3.2-3b-instruct   │ 6,000        │ 7,500               │ moderate     │
-│ phi-3.5-mini-instruct   │ 4,000        │ 5,000               │ sudden       │
-│ gemma-2-2b-instruct     │ 3,000        │ 3,500               │ catastrophic │
-└─────────────────────────┴──────────────┴─────────────────────┴──────────────┘
+| Model                   | Reliable | Degradation  | Accuracy           |
+| ----------------------- | -------- | ------------ | ------------------ |
+| qwen/qwen3-30b-a3b-2507 | 108,000  | graceful     | 96.9%              |
+| hermes-3-llama-3.2-3b   | 54,666   | catastrophic | 90.4%              |
+| baidu/ernie-4.5-21b-a3b | 16,000   | catastrophic | 50.0%              |
+| qwen2.5-3b-instruct     | 0        | catastrophic | 0.0%               |
+| google/gemma-3n-e4b     | 0        | catastrophic | 0.0%               |
+| lfm2-8b-a1b             | 0        | catastrophic | 0.3%               |
 ```
 
 See [`docs/CONTEXT_WINDOW_EXPLAINED.md`](docs/CONTEXT_WINDOW_EXPLAINED.md) for detailed explanations of context window metrics.
@@ -234,35 +245,45 @@ Squirmify/
 ## How It Works
 
 ### 1. Instruction Tests (Quality Gate)
+
 Models must pass basic instruction following tests (80%+ pass rate) to proceed. This filters out models that can't handle simple tasks.
 
 ### 2. Reasoning Tests (Judge-Based)
+
 Remaining models face 11 reasoning challenges. A judge model scores each response on correctness, logic, and clarity.
 
 ### 3. Base Judge Selection
+
 The system intelligently selects the best-performing model as the primary judge, considering both instruction following and reasoning scores.
 
 ### 4. Context Window Stress Tests
+
 Tests inject anchor words and checkpoints throughout long contexts, then probe at 25%, 50%, 75%, and 100% of target lengths. Tracks:
+
 - Max reliable context length
 - When hallucination starts
 - Checkpoint recall accuracy
 - Degradation pattern (graceful, moderate, sudden, catastrophic)
 
 ### 5. Conversation Tests
+
 8 multi-turn scenarios (3-4 exchanges each) across code, support, chat, and instruction domains. Judge evaluates coherence, tone, context retention, and helpfulness.
 
 ### 6. Seed Generation & Prompt Pipeline
+
 - Loads base seeds
 - Generates augmented variations (paraphrasing, complexity, Kiwi flavor)
 - Runs all qualified models through prompts
 - Records responses with performance metrics
 
 ### 7. Auto-Judging
+
 Top 2-3 models (based on instruction + reasoning performance) independently score all responses. This provides multiple perspectives and reduces bias.
 
 ### 8. Report Generation
+
 Final summaries show:
+
 - Model rankings by average score
 - Performance metrics (tokens/sec, latency)
 - High-quality response counts
