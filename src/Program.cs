@@ -34,8 +34,6 @@ class Program
             // ═══ Step 1: Load Models ═══
             AnsiConsole.MarkupLine("[bold cyan]═══ Step 1: Loading Models ═══[/]\n");
 
-            var exclude = new[]
-            {"qwen2.5-0.5b-instruct","lfm2-1.2b","zephyr-7b-beta"};
             var models = await modelService.LoadModelsAsync(null);
 
             if (!models.Any())
@@ -130,8 +128,6 @@ class Program
             await conversationService.SaveConversationResultsAsync(conversationResults, conversationFile);
 
             }
-            //Console.ReadLine();
-
 
             if (Config.RunPromptTests)
             {
@@ -185,8 +181,6 @@ class Program
 
                 var allResults = await RunGenerationPipelineAsync(modelService, seedsConfig, activeModels);
 
-                //Console.ReadLine();
-            
             // ═══ Step 6: Score with Base Judge ═══
             var resultsFile = Path.Combine(Config.OutputDir, "all_results.json");
             await judgingService.ScoreResultsAsync(baseJudge, allResults, resultsFile);
