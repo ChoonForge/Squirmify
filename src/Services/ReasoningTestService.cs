@@ -60,108 +60,59 @@ public class ReasoningTestSummary
 
 public static class ReasoningTests
 {
+    private static List<ReasoningTest>? _cachedTests;
+    private static ReasoningTestsConfig? _cachedConfig;
+
+    /// <summary>
+    /// Get tests from external config file
+    /// </summary>
+    public static async Task<List<ReasoningTest>> GetTestsAsync()
+    {
+        if (_cachedTests != null) return _cachedTests;
+
+        _cachedConfig = await ConfigLoader.LoadReasoningTestsAsync();
+
+        _cachedTests = _cachedConfig.Tests.Select(t => new ReasoningTest
+        {
+            Category = t.Category,
+            Description = t.Description,
+            Prompt = t.Prompt,
+            CorrectAnswer = t.CorrectAnswer
+        }).ToList();
+
+        return _cachedTests;
+    }
+
+    /// <summary>
+    /// Get the system prompt for reasoning tests
+    /// </summary>
+    public static string GetSystemPrompt()
+    {
+        return _cachedConfig?.SystemPrompt ?? "You are a helpful assistant that thinks through problems step by step.";
+    }
+
+    /// <summary>
+    /// Get the judge system prompt
+    /// </summary>
+    public static string GetJudgeSystemPrompt()
+    {
+        return _cachedConfig?.JudgeSystemPrompt ?? "You are an expert evaluator of reasoning and problem-solving. You score responses objectively based on correctness, logic, and clarity.";
+    }
+
+    /// <summary>
+    /// Get the judge prompt template
+    /// </summary>
+    public static string GetJudgePromptTemplate()
+    {
+        return _cachedConfig?.JudgePromptTemplate ?? "";
+    }
+
+    /// <summary>
+    /// Synchronous version for backwards compatibility
+    /// </summary>
     public static List<ReasoningTest> GetTests()
     {
-        return new List<ReasoningTest>
-        {
-            // === MULTI-STEP PROBLEM SOLVING ===
-            
-            new()
-            {
-                Category = "multi-step",
-                Description = "Sheep word problem",
-                Prompt = "A farmer has 17 sheep. All but 9 die. How many sheep are left? Think through this step by step and explain your reasoning clearly.",
-                CorrectAnswer = "9 sheep (because 'all but 9' means 9 survived)"
-            },
-
-            new()
-            {
-                Category = "multi-step",
-                Description = "Widget production rate",
-                Prompt = "If it takes 5 machines 5 minutes to make 5 widgets, how long would it take 100 machines to make 100 widgets? Explain your reasoning step by step.",
-                CorrectAnswer = "5 minutes (each machine makes 1 widget in 5 minutes, so 100 machines make 100 widgets in 5 minutes)"
-            },
-
-            new()
-            {
-                Category = "multi-step",
-                Description = "Age calculation puzzle",
-                Prompt = "A father is 40 years old and his son is 10. In how many years will the father be twice as old as his son? Show your work.",
-                CorrectAnswer = "20 years (father will be 60, son will be 30)"
-            },
-
-            // === CONTEXT RETENTION & TRACKING ===
-            
-            new()
-            {
-                Category = "context",
-                Description = "Multi-number calculation",
-                Prompt = "I'm thinking of three numbers. The first number is 7. The second number is twice the first number. The third number is the sum of the first two numbers. What is the third number multiplied by 2? Show each step.",
-                CorrectAnswer = "42 (first=7, second=14, third=21, third*2=42)"
-            },
-
-            new()
-            {
-                Category = "context",
-                Description = "Relationship ordering",
-                Prompt = "John is older than Mary. Mary is older than Susan. Susan is younger than Tom but older than Lisa. Who is the youngest person mentioned? Think through the relationships step by step.",
-                CorrectAnswer = "Lisa is the youngest"
-            },
-
-            // === LOGICAL REASONING ===
-            
-            new()
-            {
-                Category = "logic",
-                Description = "Syllogism flaw detection",
-                Prompt = "All cats are animals. Some animals are pets. Therefore, are all cats pets? Reason through this logically and identify any flaws in the reasoning.",
-                CorrectAnswer = "No, this is flawed. Just because some animals are pets doesn't mean all cats are pets (they could be wild cats)"
-            },
-
-            new()
-            {
-                Category = "logic",
-                Description = "Prime number reasoning",
-                Prompt = "Is 1 a prime number? Explain your reasoning using the definition of a prime number.",
-                CorrectAnswer = "No, 1 is not prime because prime numbers must have exactly two distinct divisors (1 and itself), but 1 only has one divisor"
-            },
-
-            // === APPLIED MATH ===
-            
-            new()
-            {
-                Category = "math",
-                Description = "Shopping calculation",
-                Prompt = "A bakery sells cupcakes for $3 each and cookies for $2 each. Sarah bought 5 cupcakes and 8 cookies. What is her total? Show your calculation.",
-                CorrectAnswer = "$31 (5×$3 = $15 for cupcakes, 8×$2 = $16 for cookies, total = $31)"
-            },
-
-            new()
-            {
-                Category = "math",
-                Description = "Percentage calculation",
-                Prompt = "A store has a 20% off sale. If an item originally costs $50, what's the sale price? Explain your calculation.",
-                CorrectAnswer = "$40 (20% of $50 = $10 discount, $50 - $10 = $40)"
-            },
-
-            // === PATTERN RECOGNITION ===
-            
-            new()
-            {
-                Category = "pattern",
-                Description = "Number sequence",
-                Prompt = "What comes next in this sequence: 2, 4, 8, 16, 32, __? Explain the pattern.",
-                CorrectAnswer = "64 (each number doubles: 2×2=4, 4×2=8, etc.)"
-            },
-
-            new()
-            {
-                Category = "pattern",
-                Description = "Letter sequence",
-                Prompt = "What comes next: A, C, E, G, __? Explain the pattern you observe.",
-                CorrectAnswer = "I (every other letter of the alphabet)"
-            }
-        };
+        return GetTestsAsync().GetAwaiter().GetResult();
     }
 }
 
@@ -182,7 +133,8 @@ public class ReasoningTestService
         AnsiConsole.MarkupLine("\n[bold cyan]═══ Running Reasoning Tests ═══[/]\n");
 
         var results = new List<ReasoningTestResponse>();
-        var tests = ReasoningTests.GetTests();
+        var tests = await ReasoningTests.GetTestsAsync();
+        var systemPrompt = ReasoningTests.GetSystemPrompt();
         var totalTests = models.Count * tests.Count;
 
         await AnsiConsole.Progress()
@@ -212,7 +164,7 @@ public class ReasoningTestService
 
                         var response = await _modelService.CompletionAsync(
                             model,
-                            "You are a helpful assistant that thinks through problems step by step.",
+                            systemPrompt,
                             test.Prompt,
                             0.3, // Low temp for consistent reasoning
                             0.9,
@@ -287,7 +239,20 @@ public class ReasoningTestService
         string judgeModel,
         ReasoningTestResponse response)
     {
-        var judgePrompt = $@"Evaluate this reasoning response:
+        // Use template from config if available, otherwise use default
+        var template = ReasoningTests.GetJudgePromptTemplate();
+        string judgePrompt;
+
+        if (!string.IsNullOrEmpty(template))
+        {
+            judgePrompt = template
+                .Replace("{prompt}", response.Prompt)
+                .Replace("{correctAnswer}", response.CorrectAnswer)
+                .Replace("{response}", response.Response);
+        }
+        else
+        {
+            judgePrompt = $@"Evaluate this reasoning response:
 
 Question: {response.Prompt}
 
@@ -309,10 +274,13 @@ Respond in this exact JSON format:
   ""clarity"": <1-10>,
   ""reasoning"": ""<brief explanation of overall score>""
 }}";
+        }
+
+        var judgeSystemPrompt = ReasoningTests.GetJudgeSystemPrompt();
 
         var judgeResponse = await _modelService.CompletionAsync(
             judgeModel,
-            "You are an expert evaluator of reasoning and problem-solving. You score responses objectively based on correctness, logic, and clarity.",
+            judgeSystemPrompt,
             judgePrompt,
             0.3,
             0.9,

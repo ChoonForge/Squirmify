@@ -7,7 +7,50 @@ namespace ModelEvaluator.Services;
 
 public class SeedService
 {
-    private static readonly Dictionary<string, string[]> KiwiPhrases = new()
+    private SeedAugmentationConfig? _config;
+    private Dictionary<string, string[]> _kiwiPhrases = new();
+    private string[] _contextSuffixes = Array.Empty<string>();
+    private string[] _supportSuffixes = Array.Empty<string>();
+    private Dictionary<string, string[]> _verbParaphrases = new();
+    private string[] _kiwiCasualStarters = Array.Empty<string>();
+    private string[] _kiwiCasualEndings = Array.Empty<string>();
+
+    /// <summary>
+    /// Ensure augmentation config is loaded from external file
+    /// </summary>
+    private async Task EnsureConfigLoadedAsync()
+    {
+        if (_config != null) return;
+
+        _config = await ConfigLoader.LoadSeedAugmentationAsync();
+
+        // Load from config with defaults
+        _kiwiPhrases = _config.KiwiPhrases.Count > 0
+            ? _config.KiwiPhrases.ToDictionary(kv => kv.Key, kv => kv.Value.ToArray())
+            : GetDefaultKiwiPhrases();
+
+        _contextSuffixes = _config.ContextSuffixes.Count > 0
+            ? _config.ContextSuffixes.ToArray()
+            : GetDefaultContextSuffixes();
+
+        _supportSuffixes = _config.SupportSuffixes.Count > 0
+            ? _config.SupportSuffixes.ToArray()
+            : GetDefaultSupportSuffixes();
+
+        _verbParaphrases = _config.VerbParaphrases.Count > 0
+            ? _config.VerbParaphrases.ToDictionary(kv => kv.Key, kv => kv.Value.ToArray())
+            : GetDefaultVerbParaphrases();
+
+        _kiwiCasualStarters = _config.KiwiCasualStarters.Count > 0
+            ? _config.KiwiCasualStarters.ToArray()
+            : new[] { "Hey mate, ", "Yo, ", "G'day, ", "Kia ora, ", "" };
+
+        _kiwiCasualEndings = _config.KiwiCasualEndings.Count > 0
+            ? _config.KiwiCasualEndings.ToArray()
+            : new[] { " Cheers!", " Sweet as.", " Keen as to see what you come up with.", "" };
+    }
+
+    private static Dictionary<string, string[]> GetDefaultKiwiPhrases() => new()
     {
         ["good job"] = new[] { "good on ya", "nice one", "sweet as", "choice", "bloody good work" },
         ["great"] = new[] { "choice", "bloody brilliant", "primo", "top notch", "mean as" },
@@ -21,7 +64,7 @@ public class SeedService
         ["broken"] = new[] { "munted", "rooted", "buggered", "not going to plan" }
     };
 
-    private static readonly string[] ContextSuffixes = 
+    private static string[] GetDefaultContextSuffixes() => new[]
     {
         "", "Include a minimal code example.", "Focus on accessibility wins first.",
         "Suggest pitfalls to avoid.", "End with one actionable next step.",
@@ -29,13 +72,13 @@ public class SeedService
         "Assume .NET 9 and Blazor.", "Keep it under 200 words."
     };
 
-    private static readonly string[] SupportSuffixes = 
+    private static string[] GetDefaultSupportSuffixes() => new[]
     {
         "Keep it under 150 words.", "End with a one-sentence encouragement.",
         "Use a warm, empathetic tone.", "Suggest one tiny action the user can take right now."
     };
 
-    private static readonly Dictionary<string, string[]> VerbParaphrases = new()
+    private static Dictionary<string, string[]> GetDefaultVerbParaphrases() => new()
     {
         ["Create"] = new[] { "Build", "Design", "Implement", "Develop", "Knock up", "Put together" },
         ["Show"] = new[] { "Demonstrate", "Display", "Provide", "Give", "Chuck out" },
@@ -87,20 +130,23 @@ public class SeedService
 
 
     // 1) NEW: public entry with optional weights — preserves current signature/behavior
-    public Task<SeedsConfig> GenerateAugmentedSeedsAsync(
+    public async Task<SeedsConfig> GenerateAugmentedSeedsAsync(
         List<SeedItem> baseSeeds,
         int targetCount,
         Dictionary<string, double>? categoryWeights = null)
     {
+        // Ensure config is loaded first
+        await EnsureConfigLoadedAsync();
+
         if (categoryWeights is null || categoryWeights.Count == 0)
         {
             // Fall back to your original unweighted flow
-            return GenerateAugmentedSeeds_UnweightedAsync(baseSeeds, targetCount);
+            return await GenerateAugmentedSeeds_UnweightedAsync(baseSeeds, targetCount);
         }
 
         // Normalize weights and dispatch to weighted flow
         var normalized = NormalizeWeights(categoryWeights, new[] { "code", "instruction", "chat", "support" });
-        return GenerateAugmentedSeeds_WeightedAsync(baseSeeds, targetCount, normalized);
+        return await GenerateAugmentedSeeds_WeightedAsync(baseSeeds, targetCount, normalized);
     }
 
     // 2) NEW: keep your original method body but move it behind a private name so we don’t change behavior
@@ -144,7 +190,8 @@ public class SeedService
                 };
 
 
-                foreach (var suffix in ContextSuffixes.Where(s => !string.IsNullOrEmpty(s)))
+                var contextSuffixes = _contextSuffixes.Length > 0 ? _contextSuffixes : GetDefaultContextSuffixes();
+                foreach (var suffix in contextSuffixes.Where(s => !string.IsNullOrEmpty(s)))
                     configs.Add(("context_suffix", suffix));
 
                 // --- 1) Seed with base items under quotas (round-robin by category) ---
@@ -370,7 +417,8 @@ public class SeedService
                     ("complexity", null)
                 };
 
-                foreach (var suffix in ContextSuffixes.Where(s => !string.IsNullOrEmpty(s)))
+                var contextSuffixes = _contextSuffixes.Length > 0 ? _contextSuffixes : GetDefaultContextSuffixes();
+                foreach (var suffix in contextSuffixes.Where(s => !string.IsNullOrEmpty(s)))
                     configs.Add(("context_suffix", suffix));
 
                 // Generate variants
@@ -444,17 +492,22 @@ public class SeedService
 
     private string AddContextSuffix(string baseInstr, string? param, bool isSupport, Random rnd)
     {
-        var suffixes = isSupport 
-            ? SupportSuffixes.Concat(ContextSuffixes).ToArray() 
-            : ContextSuffixes;
-            
+        var contextSuffixes = _contextSuffixes.Length > 0 ? _contextSuffixes : GetDefaultContextSuffixes();
+        var supportSuffixes = _supportSuffixes.Length > 0 ? _supportSuffixes : GetDefaultSupportSuffixes();
+
+        var suffixes = isSupport
+            ? supportSuffixes.Concat(contextSuffixes).ToArray()
+            : contextSuffixes;
+
         var suffix = param ?? rnd.NextItem(suffixes.Where(s => !string.IsNullOrEmpty(s)).ToArray());
         return string.IsNullOrEmpty(suffix) ? baseInstr : $"{baseInstr} {suffix}";
     }
 
     private string ParaphraseVerb(string baseInstr, Random rnd)
     {
-        foreach (var (verb, replacements) in VerbParaphrases)
+        var verbParaphrases = _verbParaphrases.Count > 0 ? _verbParaphrases : GetDefaultVerbParaphrases();
+
+        foreach (var (verb, replacements) in verbParaphrases)
         {
             if (baseInstr.StartsWith(verb, StringComparison.OrdinalIgnoreCase))
             {
@@ -473,12 +526,12 @@ public class SeedService
 
     private string MakeKiwiCasual(string baseInstr, Random rnd)
     {
-        var starters = new[] { "Hey mate, ", "Yo, ", "G'day, ", "Kia ora, ", "" };
-        var endings = new[] { " Cheers!", " Sweet as.", " Keen as to see what you come up with.", "" };
-        
+        var starters = _kiwiCasualStarters.Length > 0 ? _kiwiCasualStarters : new[] { "Hey mate, ", "Yo, ", "G'day, ", "Kia ora, ", "" };
+        var endings = _kiwiCasualEndings.Length > 0 ? _kiwiCasualEndings : new[] { " Cheers!", " Sweet as.", " Keen as to see what you come up with.", "" };
+
         var start = rnd.NextItem(starters);
         var end = rnd.NextItem(endings);
-        
+
         if (baseInstr.StartsWith("hey", StringComparison.OrdinalIgnoreCase) ||
             baseInstr.StartsWith("hi", StringComparison.OrdinalIgnoreCase) ||
             baseInstr.StartsWith("yo", StringComparison.OrdinalIgnoreCase) ||
@@ -487,15 +540,17 @@ public class SeedService
         {
             return Kiwiify(baseInstr) + end;
         }
-        
+
         return start + Kiwiify(baseInstr) + end;
     }
 
     private string Kiwiify(string text)
     {
         if (text == null) return text;
-        
-        foreach (var (key, replacements) in KiwiPhrases)
+
+        var kiwiPhrases = _kiwiPhrases.Count > 0 ? _kiwiPhrases : GetDefaultKiwiPhrases();
+
+        foreach (var (key, replacements) in kiwiPhrases)
         {
             if (text.Contains(key, StringComparison.OrdinalIgnoreCase))
             {
@@ -503,7 +558,7 @@ public class SeedService
                 text = Regex.Replace(text, $@"\b{Regex.Escape(key)}\b", replacement, RegexOptions.IgnoreCase);
             }
         }
-        
+
         return text;
     }
 

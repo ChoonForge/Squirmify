@@ -1,0 +1,73 @@
+{
+  "tests": [
+    {
+      "category": "multi-step",
+      "description": "Sheep word problem",
+      "prompt": "A farmer has 17 sheep. All but 9 die. How many sheep are left? Think through this step by step and explain your reasoning clearly.",
+      "correctAnswer": "9 sheep (because 'all but 9' means 9 survived)"
+    },
+    {
+      "category": "multi-step",
+      "description": "Widget production rate",
+      "prompt": "If it takes 5 machines 5 minutes to make 5 widgets, how long would it take 100 machines to make 100 widgets? Explain your reasoning step by step.",
+      "correctAnswer": "5 minutes (each machine makes 1 widget in 5 minutes, so 100 machines make 100 widgets in 5 minutes)"
+    },
+    {
+      "category": "multi-step",
+      "description": "Age calculation puzzle",
+      "prompt": "A father is 40 years old and his son is 10. In how many years will the father be twice as old as his son? Show your work.",
+      "correctAnswer": "20 years (father will be 60, son will be 30)"
+    },
+    {
+      "category": "context",
+      "description": "Multi-number calculation",
+      "prompt": "I'm thinking of three numbers. The first number is 7. The second number is twice the first number. The third number is the sum of the first two numbers. What is the third number multiplied by 2? Show each step.",
+      "correctAnswer": "42 (first=7, second=14, third=21, third*2=42)"
+    },
+    {
+      "category": "context",
+      "description": "Relationship ordering",
+      "prompt": "John is older than Mary. Mary is older than Susan. Susan is younger than Tom but older than Lisa. Who is the youngest person mentioned? Think through the relationships step by step.",
+      "correctAnswer": "Lisa is the youngest"
+    },
+    {
+      "category": "logic",
+      "description": "Syllogism flaw detection",
+      "prompt": "All cats are animals. Some animals are pets. Therefore, are all cats pets? Reason through this logically and identify any flaws in the reasoning.",
+      "correctAnswer": "No, this is flawed. Just because some animals are pets doesn't mean all cats are pets (they could be wild cats)"
+    },
+    {
+      "category": "logic",
+      "description": "Prime number reasoning",
+      "prompt": "Is 1 a prime number? Explain your reasoning using the definition of a prime number.",
+      "correctAnswer": "No, 1 is not prime because prime numbers must have exactly two distinct divisors (1 and itself), but 1 only has one divisor"
+    },
+    {
+      "category": "math",
+      "description": "Shopping calculation",
+      "prompt": "A bakery sells cupcakes for $3 each and cookies for $2 each. Sarah bought 5 cupcakes and 8 cookies. What is her total? Show your calculation.",
+      "correctAnswer": "$31 (5x$3 = $15 for cupcakes, 8x$2 = $16 for cookies, total = $31)"
+    },
+    {
+      "category": "math",
+      "description": "Percentage calculation",
+      "prompt": "A store has a 20% off sale. If an item originally costs $50, what's the sale price? Explain your calculation.",
+      "correctAnswer": "$40 (20% of $50 = $10 discount, $50 - $10 = $40)"
+    },
+    {
+      "category": "pattern",
+      "description": "Number sequence",
+      "prompt": "What comes next in this sequence: 2, 4, 8, 16, 32, __? Explain the pattern.",
+      "correctAnswer": "64 (each number doubles: 2x2=4, 4x2=8, etc.)"
+    },
+    {
+      "category": "pattern",
+      "description": "Letter sequence",
+      "prompt": "What comes next: A, C, E, G, __? Explain the pattern you observe.",
+      "correctAnswer": "I (every other letter of the alphabet)"
+    }
+  ],
+  "systemPrompt": "You are a helpful assistant that thinks through problems step by step.",
+  "judgeSystemPrompt": "You are an expert evaluator of reasoning and problem-solving. You score responses objectively based on correctness, logic, and clarity.",
+  "judgePromptTemplate": "Evaluate this reasoning response:\n\nQuestion: {prompt}\n\nCorrect Answer (for reference): {correctAnswer}\n\nModel's Response:\n{response}\n\nRate this response from 1-10 on these dimensions:\n1. Correct Answer (did they get the right answer?)\n2. Logical Steps (did they show their reasoning/work?)\n3. Clarity (was the explanation clear and easy to follow?)\n\nRespond in this exact JSON format:\n{\n  \"overall_score\": <1-10>,\n  \"correct_answer\": <1-10>,\n  \"logical_steps\": <1-10>,\n  \"clarity\": <1-10>,\n  \"reasoning\": \"<brief explanation of overall score>\"\n}"
+}

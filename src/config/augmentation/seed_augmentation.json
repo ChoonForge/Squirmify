@@ -1,0 +1,47 @@
+{
+  "kiwiPhrases": {
+    "good job": ["good on ya", "nice one", "sweet as", "choice", "bloody good work"],
+    "great": ["choice", "bloody brilliant", "primo", "top notch", "mean as"],
+    "okay": ["sweet as", "no worries", "she'll be right", "all good"],
+    "yes": ["yeah bah", "yep", "for sure", "choice", "keen as"],
+    "let's do it": ["let's crack on", "let's get stuck in", "keen as", "let's give it a go"],
+    "that's right": ["too right", "spot on", "bang on", "yeah nah yeah"],
+    "help": ["give you a hand", "sort you out", "help out"],
+    "understand": ["get it", "sus it out", "work it out", "figure it"],
+    "fixed": ["sorted", "all sorted", "fixed up good", "back on track"],
+    "broken": ["munted", "rooted", "buggered", "not going to plan"]
+  },
+  "contextSuffixes": [
+    "",
+    "Include a minimal code example.",
+    "Focus on accessibility wins first.",
+    "Suggest pitfalls to avoid.",
+    "End with one actionable next step.",
+    "Prefer bullet points and be concise.",
+    "Show one tiny test case.",
+    "Assume .NET 9 and Blazor.",
+    "Keep it under 200 words."
+  ],
+  "supportSuffixes": [
+    "Keep it under 150 words.",
+    "End with a one-sentence encouragement.",
+    "Use a warm, empathetic tone.",
+    "Suggest one tiny action the user can take right now."
+  ],
+  "verbParaphrases": {
+    "Create": ["Build", "Design", "Implement", "Develop", "Knock up", "Put together"],
+    "Show": ["Demonstrate", "Display", "Provide", "Give", "Chuck out"],
+    "Explain": ["Describe", "Clarify", "Break down", "Walk through", "Run through"],
+    "List": ["Enumerate", "Outline", "Detail", "Catalog", "Chuck together a list of"],
+    "Suggest": ["Recommend", "Propose", "Advise", "Offer", "Reckon you should try"],
+    "Write": ["Draft", "Compose", "Code", "Craft", "Chuck together"],
+    "Provide": ["Give", "Supply", "Offer", "Present", "Sort out"],
+    "Help": ["Give you a hand with", "Sort you out with", "Assist with"]
+  },
+  "kiwiCasualStarters": ["Hey mate, ", "Yo, ", "G'day, ", "Kia ora, ", ""],
+  "kiwiCasualEndings": [" Cheers!", " Sweet as.", " Keen as to see what you come up with.", ""],
+  "complexityModifiers": [
+    "Keep it simple for beginners.",
+    "Include advanced patterns and edge cases."
+  ]
+}
