@@ -1,0 +1,90 @@
+{
+  "server": {
+    "baseUrl": "http://10.0.0.50:1234/v1",
+    "authToken": "sk-aimate-T0byGrace!",
+    "useAuth": false,
+    "requestTimeoutMinutes": 10
+  },
+
+  "testSuites": {
+    "runPromptTests": true,
+    "runContextWindowTests": false,
+    "runConversationTests": true
+  },
+
+  "seedGeneration": {
+    "targetSeedCount": 5,
+    "baseSeedsFile": "base_seeds.jsonl",
+    "generatedSeedsFile": "seeds.json"
+  },
+
+  "instructionTests": {
+    "maxModelErrors": 3,
+    "temperature": 0.0,
+    "topP": 0.8,
+    "passThreshold": 0.8
+  },
+
+  "reasoningTests": {
+    "minScore": 7.0,
+    "temperature": 0.3,
+    "topP": 0.9,
+    "maxTokens": 600
+  },
+
+  "conversationTests": {
+    "temperature": 0.7,
+    "topP": 0.9,
+    "maxTokens": 600
+  },
+
+  "generation": {
+    "globalTemperature": 0.5,
+    "globalTopP": 0.9,
+    "globalMaxTokens": 512
+  },
+
+  "categorySettings": {
+    "code": {
+      "temperature": 0.3,
+      "maxTokens": 2500,
+      "systemPrompt": "You are a senior .NET engineer. Produce clear, correct, and self-contained C# code. Return only the code (no explanations, no headers, no backticks). Prefer minimal dependencies and idiomatic patterns. If the task implies I/O or setup, include that code too."
+    },
+    "instruction": {
+      "temperature": 0.6,
+      "maxTokens": 800,
+      "systemPrompt": "You are a patient teacher who explains concepts clearly."
+    },
+    "chat": {
+      "temperature": 0.95,
+      "maxTokens": 800,
+      "systemPrompt": "You are a friendly, casual kiwi conversational partner."
+    },
+    "support": {
+      "temperature": 0.95,
+      "maxTokens": 1200,
+      "systemPrompt": "You are a friendly, capable Kiwi support specialist. Be empathetic but efficient—avoid repeating yourself. Use everyday NZ English and finish with a reassuring closing line."
+    }
+  },
+
+  "scoring": {
+    "highQualityThreshold": 7.5,
+    "topJudgeCount": 2
+  },
+
+  "contextWindowTests": {
+    "degradationThresholds": {
+      "graceful": 100000,
+      "moderate": 60000,
+      "sudden": 30000
+    }
+  },
+
+  "performance": {
+    "maxParallelRequests": 1
+  },
+
+  "output": {
+    "directory": "output"
+  }
+}
