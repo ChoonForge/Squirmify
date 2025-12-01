@@ -1,4 +1,4 @@
-# Squirmify 🔥
+# Squirmify
 
 **A comprehensive LLM evaluation framework that separates fact from marketing fiction.**
 
@@ -26,10 +26,10 @@ Most LLM benchmarks rely on self-reported metrics and marketing claims. Squirmif
 
 ## Features
 
-### 🎯 Comprehensive Testing Pipeline
+### Comprehensive Testing Pipeline
 
 1. **Instruction Following Tests** (14 tests)
-   
+
    - JSON generation & validation
    - Tool calling scenarios
    - Format constraints
@@ -37,7 +37,7 @@ Most LLM benchmarks rely on self-reported metrics and marketing claims. Squirmif
    - Exact output matching
 
 2. **Reasoning Tests** (11 tests across 5 categories)
-   
+
    - Multi-step problems
    - Context retention
    - Logic & syllogisms
@@ -46,7 +46,7 @@ Most LLM benchmarks rely on self-reported metrics and marketing claims. Squirmif
    - Judge-based scoring (no brittle validators)
 
 3. **Context Window Stress Tests** (4 patterns)
-   
+
    - Needle in Haystack (8k tokens)
    - Instruction Retention (6k tokens)
    - Code Context Stress (10k tokens)
@@ -55,21 +55,21 @@ Most LLM benchmarks rely on self-reported metrics and marketing claims. Squirmif
    - Exposes recency bias
 
 4. **Conversation Tests** (8 scenarios across 4 domains)
-   
+
    - Code assistance (debugging, refactoring)
    - Customer support (password reset, feature explanation)
    - Casual chat (hobbies, weekend plans)
    - Instruction following (todo lists, email refinement)
    - 3-4 turn exchanges per scenario
 
-### 📊 Intelligent Judging System
+### Intelligent Judging System
 
 - **Base Judge Selection**: Automatically selects the most capable model based on instruction and reasoning performance
 - **Auto-Judges**: Top 2-3 models provide independent scoring
 - **Multi-dimensional Scoring**: Accuracy, code quality, reasoning, coherence, helpfulness
 - **High-Quality Dataset Extraction**: Automatically saves responses scoring above 7.5/10
 
-### 🥝 Synthetic Data Generation
+### Synthetic Data Generation
 
 - Loads base seed prompts
 - Generates augmented variations with:
@@ -93,27 +93,32 @@ Most LLM benchmarks rely on self-reported metrics and marketing claims. Squirmif
 ### Setup
 
 1. Clone the repository:
-   
+
    ```bash
    git clone https://github.com/ChoonForge/Squirmify.git
    cd Squirmify
    ```
 
 2. Build the project:
-   
+
    ```bash
    cd src
    dotnet build
    ```
 
-3. Configure your model server in `src/Config.cs`:
-   
-   ```csharp
-   public const string BaseUrl = "http://localhost:1234/v1"; // LM Studio default
+3. Configure your model server in `src/config/settings.json`:
+
+   ```json
+   {
+     "server": {
+       "baseUrl": "http://localhost:1234/v1",
+       "useAuth": false
+     }
+   }
    ```
 
 4. (Optional) Add base seed prompts to `src/base_seeds.jsonl`:
-   
+
    ```jsonl
    {"instruction":"Create a C# extension method to convert a string to title case.","tags":["code"]}
    {"instruction":"Explain how dependency injection works in ASP.NET Core.","tags":["instruction"]}
@@ -145,26 +150,6 @@ Squirmify will automatically:
 11. Generate comprehensive reports
 12. Extract high-quality dataset
 
-### Configuration
-
-Edit `src/Config.cs` to customize behavior:
-
-```csharp
-// Toggle test suites
-public const bool RunPromptTests = true;
-public const bool RunContextWindowTests = true;
-public const bool RunConversationTests = true;
-
-// Seed generation
-public const int TargetSeedCount = 10;
-
-// High-quality threshold
-public const double HighQualityThreshold = 7.5;
-
-// Performance
-public const int MaxParallelRequests = 1;
-```
-
 ### Output Files
 
 All results are saved to `output/`:
@@ -176,6 +161,282 @@ All results are saved to `output/`:
 - `context_window_results.json` - Context window stress test results
 - `high_quality_dataset.jsonl` - High-scoring responses for training
 - `seeds.json` - Generated augmented seed prompts
+
+---
+
+## Test Types Explained
+
+### 1. Instruction Following Tests
+
+**Purpose**: Gate-keeper tests to filter out models that can't follow basic instructions. Models must pass 80%+ to proceed to further testing.
+
+**Categories**:
+
+| Category | What It Tests | Example |
+|----------|---------------|---------|
+| `json` | Can the model output valid JSON? | "Output a JSON object with name and age fields" |
+| `tool_calling` | Can it format tool/function calls correctly? | "Call the weather API with city=Auckland" |
+| `format` | Can it follow specific output formats? | "List 5 items, one per line, numbered" |
+| `calculation` | Can it perform basic math? | "What is 15% of 240?" |
+| `exact` | Can it output exactly what's requested? | "Say only: Hello World" |
+| `word_count` | Can it follow length constraints? | "Describe in exactly 50 words" |
+
+**Validation Types**:
+- `exact` - Response must match expected output exactly
+- `words` - Response must contain specific words
+- `lines` - Response must have specific number of lines
+- `json` - Response must be valid JSON matching structure
+- `numeric` - Response must match a numeric value
+- `boolean` - Response must be true/false
+
+**Config**: `config/tests/instruction_tests.json`
+
+---
+
+### 2. Reasoning Tests
+
+**Purpose**: Evaluate a model's ability to think through problems, show its work, and arrive at correct answers. Uses judge-based scoring rather than brittle validators.
+
+**Categories**:
+
+| Category | What It Tests | Example |
+|----------|---------------|---------|
+| `multi-step` | Complex problems requiring sequential reasoning | "A store has 3 shelves with 4 boxes each..." |
+| `context` | Using provided context to answer questions | "Given this passage, what year did X happen?" |
+| `logic` | Syllogisms, deduction, inference | "All A are B. All B are C. Is all A also C?" |
+| `math` | Mathematical problem solving | "If train A leaves at 9am going 60mph..." |
+| `pattern` | Pattern recognition and extrapolation | "What comes next: 2, 6, 12, 20, ?" |
+
+**Scoring Dimensions** (1-10 each):
+- **Correct Answer**: Did they get the right answer?
+- **Logical Steps**: Did they show their reasoning/work?
+- **Clarity**: Was the explanation clear and easy to follow?
+- **Overall Score**: Holistic assessment
+
+**Config**: `config/tests/reasoning_tests.json`
+
+---
+
+### 3. Context Window Stress Tests
+
+**Purpose**: Expose the gap between claimed context window size and actual usable context. Many models claim 32k+ tokens but fail catastrophically at 8k.
+
+**Test Patterns**:
+
+| Pattern | Description |
+|---------|-------------|
+| Stealth Needle Storm | Buries multiple "secret words" throughout long context and asks model to recall them |
+| Lost in the Middle | Tests recall at different positions (beginning, middle, end) to detect recency bias |
+| Buried Instruction | Places a critical instruction deep in filler content |
+
+**What Gets Measured**:
+- **Max Reliable Context**: Largest context size where model maintains accuracy
+- **Degradation Pattern**: How does accuracy fall off?
+  - `graceful` - Slow, predictable decline (>100k tokens)
+  - `moderate` - Noticeable decline (60k-100k tokens)
+  - `sudden` - Sharp drop at a threshold (30k-60k tokens)
+  - `catastrophic` - Immediate failure (<30k tokens)
+- **Checkpoint Recall**: Can it remember info from specific positions?
+- **Hallucination Detection**: Does it make up answers vs. honestly admitting confusion?
+
+**Config**: `config/tests/context_window_tests.json`
+
+---
+
+### 4. Conversation Tests
+
+**Purpose**: Evaluate multi-turn conversational ability. Real applications involve back-and-forth exchanges, not one-shot prompts.
+
+**Categories**:
+
+| Category | Scenarios |
+|----------|-----------|
+| `code` | Debugging help, refactoring suggestions, code review |
+| `support` | Password reset, feature explanation, troubleshooting |
+| `chat` | Hobbies discussion, weekend plans, casual conversation |
+| `instruction` | Todo list building, email refinement, step-by-step tasks |
+
+**Each test includes**:
+- 3-4 turn exchanges
+- System prompt defining the persona
+- Expected themes for each turn
+- Judging criteria specific to the scenario
+
+**Scoring Dimensions** (1-10 each):
+- **Topic Coherence**: Stayed on topic, didn't drift
+- **Conversational Tone**: Natural, appropriate, friendly
+- **Context Retention**: Remembered earlier turns
+- **Helpfulness**: Moved conversation forward productively
+
+**Config**: `config/tests/conversation_tests.json`
+
+---
+
+## How Judging Works
+
+Squirmify uses a sophisticated multi-judge system to score model responses objectively.
+
+### Judge Selection Pipeline
+
+```
+1. All models take instruction tests (quality gate)
+         ↓
+2. Passing models (80%+) take reasoning tests
+         ↓
+3. Best performer becomes "Base Judge"
+         ↓
+4. Top 2-3 performers become "Auto-Judges"
+         ↓
+5. All qualified models run through prompts
+         ↓
+6. Base Judge scores all responses
+         ↓
+7. Auto-Judges independently re-score
+         ↓
+8. Final scores are aggregated
+```
+
+### Why Multiple Judges?
+
+- **Reduces bias**: Single-judge scoring can be biased toward similar models
+- **Increases reliability**: Multiple perspectives catch edge cases
+- **Validates consistency**: High agreement = reliable scores
+
+### Judge Prompt Templates
+
+Judges receive structured prompts with:
+- The original task/prompt
+- The correct answer (for reference)
+- The model's response
+- Scoring rubric with dimensions
+- Required JSON output format
+
+Example judge output:
+```json
+{
+  "overall_score": 8,
+  "correct_answer": 9,
+  "logical_steps": 7,
+  "clarity": 8,
+  "reasoning": "Correct answer with clear steps, minor formatting issues"
+}
+```
+
+### Scoring Thresholds
+
+| Threshold | Meaning |
+|-----------|---------|
+| 7.5+ | High-quality (saved to training dataset) |
+| 7.0+ | Passes reasoning qualification |
+| 80%+ | Passes instruction qualification |
+
+---
+
+## Configuration
+
+All configuration is externalized to JSON files in the `config/` directory.
+
+### Main Settings (`config/settings.json`)
+
+```json
+{
+  "server": {
+    "baseUrl": "http://localhost:1234/v1",
+    "authToken": "",
+    "useAuth": false,
+    "requestTimeoutMinutes": 10
+  },
+  "testSuites": {
+    "runPromptTests": true,
+    "runContextWindowTests": false,
+    "runConversationTests": true
+  },
+  "seedGeneration": {
+    "targetSeedCount": 5
+  },
+  "scoring": {
+    "highQualityThreshold": 7.5,
+    "topJudgeCount": 2
+  }
+}
+```
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `server.baseUrl` | LLM API endpoint | `http://localhost:1234/v1` |
+| `server.useAuth` | Enable API key auth | `false` |
+| `server.requestTimeoutMinutes` | Request timeout | `10` |
+| `testSuites.runPromptTests` | Enable prompt testing | `true` |
+| `testSuites.runContextWindowTests` | Enable context tests | `false` |
+| `testSuites.runConversationTests` | Enable conversation tests | `true` |
+| `seedGeneration.targetSeedCount` | Number of seeds to generate | `5` |
+| `scoring.highQualityThreshold` | Score for HQ dataset | `7.5` |
+| `scoring.topJudgeCount` | Number of auto-judges | `2` |
+
+### Test Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `config/tests/instruction_tests.json` | Instruction following test definitions |
+| `config/tests/reasoning_tests.json` | Reasoning test definitions + judge prompts |
+| `config/tests/conversation_tests.json` | Multi-turn conversation scenarios |
+| `config/tests/context_window_tests.json` | Context window stress tests + filler content |
+
+### Prompt Configuration
+
+| File | Purpose |
+|------|---------|
+| `config/prompts/system_prompts.json` | Category-specific system prompts |
+
+### Seed Augmentation
+
+| File | Purpose |
+|------|---------|
+| `config/augmentation/seed_augmentation.json` | Kiwi phrases, suffixes, verb paraphrases |
+
+---
+
+## Project Structure
+
+```
+Squirmify/
+├── src/
+│   ├── Program.cs              # Main evaluation pipeline
+│   ├── Config.cs               # Configuration loader
+│   ├── Extensions.cs           # Utility extensions
+│   ├── config/                 # External configuration files
+│   │   ├── settings.json       # Main settings
+│   │   ├── tests/
+│   │   │   ├── instruction_tests.json
+│   │   │   ├── reasoning_tests.json
+│   │   │   ├── conversation_tests.json
+│   │   │   └── context_window_tests.json
+│   │   ├── prompts/
+│   │   │   └── system_prompts.json
+│   │   └── augmentation/
+│   │       └── seed_augmentation.json
+│   ├── Models/
+│   │   ├── DTOs.cs             # Data transfer objects
+│   │   └── ConversationTest.cs # Conversation test models
+│   ├── Services/
+│   │   ├── ModelService.cs              # LLM API client
+│   │   ├── ConfigLoader.cs              # JSON config loader
+│   │   ├── TestService.cs               # Instruction tests
+│   │   ├── ReasoningTestService.cs      # Reasoning tests
+│   │   ├── ContextWindowTestService.cs  # Context stress tests
+│   │   ├── ConversationTestService.cs   # Multi-turn conversation tests
+│   │   ├── SeedService.cs               # Seed generation & augmentation
+│   │   └── JudgingService.cs            # Scoring & judging logic
+│   ├── base_seeds.jsonl        # Base prompts for augmentation
+│   └── Squirmify.csproj        # .NET project file
+├── docs/
+│   ├── CONTEXT_WINDOW_EXPLAINED.md      # Context window test details
+│   ├── context-window-stress-test-summary.md
+│   └── v2 Evaluator.md                  # Design notes
+├── output/                     # Generated results (created at runtime)
+├── LICENSE
+└── README.md
+```
 
 ---
 
@@ -203,42 +464,10 @@ All results are saved to `output/`:
 | baidu/ernie-4.5-21b-a3b | 16,000   | catastrophic | 50.0%              |
 | qwen2.5-3b-instruct     | 0        | catastrophic | 0.0%               |
 | google/gemma-3n-e4b     | 0        | catastrophic | 0.0%               |
-| lfm2-8b-a1b             | 0        | catastrophic | 0.3%               |
+| lfm2-8b-a1b             | 0        | catastrophic | 0.3%               |
 ```
 
 See [`docs/CONTEXT_WINDOW_EXPLAINED.md`](docs/CONTEXT_WINDOW_EXPLAINED.md) for detailed explanations of context window metrics.
-
----
-
-## Project Structure
-
-```
-Squirmify/
-├── src/
-│   ├── Program.cs              # Main evaluation pipeline
-│   ├── Config.cs               # Configuration settings
-│   ├── Extensions.cs           # Utility extensions
-│   ├── Models/
-│   │   ├── DTOs.cs            # Data transfer objects
-│   │   └── ConversationTest.cs # Conversation test models
-│   ├── Services/
-│   │   ├── ModelService.cs              # LLM API client
-│   │   ├── TestService.cs               # Instruction tests
-│   │   ├── ReasoningTestService.cs      # Reasoning tests
-│   │   ├── ContextWindowTestService.cs  # Context stress tests
-│   │   ├── ConversationTestService.cs   # Multi-turn conversation tests
-│   │   ├── SeedService.cs               # Seed generation & augmentation
-│   │   └── JudgingService.cs            # Scoring & judging logic
-│   ├── base_seeds.jsonl        # Base prompts for augmentation
-│   └── Squirmify.csproj        # .NET project file
-├── docs/
-│   ├── CONTEXT_WINDOW_EXPLAINED.md      # Context window test details
-│   ├── context-window-stress-test-summary.md
-│   └── v2 Evaluator.md                  # Design notes
-├── output/                     # Generated results (created at runtime)
-├── LICENSE
-└── README.md
-```
 
 ---
 
@@ -294,32 +523,46 @@ Final summaries show:
 
 ## Advanced Usage
 
-### Custom System Prompts
+### Adding Custom Tests
 
-Edit category-specific system prompts in `Config.cs`:
+Add new tests by editing the JSON config files:
 
-```csharp
-public static readonly Dictionary<string, CategoryDefaults> CategorySettings = new()
+**Instruction Test** (`config/tests/instruction_tests.json`):
+```json
 {
-    ["code"] = new(0.3, 2500, "You are a senior .NET engineer..."),
-    ["instruction"] = new(0.6, 800, "You are a patient teacher..."),
-    ["chat"] = new(0.95, 800, "You are a friendly conversational partner..."),
-    ["support"] = new(0.95, 1200, "You are a compassionate support specialist...")
-};
-```
-
-### Adding Custom Instruction Tests
-
-Extend `TestService.cs` with new test cases:
-
-```csharp
-new InstructionTest
-{
-    Prompt = "Your test prompt here",
-    ExpectedResult = "Expected output",
-    ValidationType = ValidationType.Exact
+  "prompt": "Your test prompt here",
+  "expectedResult": "Expected output",
+  "validationType": "exact",
+  "category": "custom"
 }
 ```
+
+**Reasoning Test** (`config/tests/reasoning_tests.json`):
+```json
+{
+  "category": "logic",
+  "description": "Test description",
+  "prompt": "Your reasoning question",
+  "correctAnswer": "The expected answer"
+}
+```
+
+**Conversation Test** (`config/tests/conversation_tests.json`):
+```json
+{
+  "category": "support",
+  "description": "Password reset scenario",
+  "systemPrompt": "You are a helpful support agent",
+  "turns": [
+    {"userMessage": "I forgot my password", "expectedTheme": "password reset"}
+  ],
+  "judgingCriteria": ["empathy", "clear instructions"]
+}
+```
+
+### Customizing Judge Prompts
+
+Edit `config/tests/reasoning_tests.json` to modify the `judgeSystemPrompt` and `judgePromptTemplate` fields.
 
 ### Excluding Models
 
@@ -371,7 +614,7 @@ MIT License - see [LICENSE](LICENSE) for details
 
 - Built with [LM Studio](https://lmstudio.ai/) for local model testing
 - Inspired by the need for honest, reproducible LLM benchmarks
-- Kiwi flavor inspired by New Zealand English 🥝
+- Kiwi flavor inspired by New Zealand English
 
 ---
 
@@ -387,14 +630,17 @@ A: Squirmify is just the test harness. Your model server (LM Studio, etc.) needs
 A: Currently optimized for LM Studio's OpenAI-compatible API. Support for other providers can be added by extending `ModelService.cs`.
 
 **Q: How long does a full evaluation take?**
-A: Depends on model count, seed count, and model speed. Typical run: 10 models × 50 seeds × 4 test suites = ~30-60 minutes.
+A: Depends on model count, seed count, and model speed. Typical run: 10 models x 50 seeds x 4 test suites = ~30-60 minutes.
 
 **Q: What's with the Kiwi language?**
 A: Optional New Zealand English flavor for synthetic data generation. Toggle with the `kiwi` parameter in seed generation. Sweet as!
 
 **Q: Can I disable certain test suites?**
-A: Yes! Set flags in `Config.cs`: `RunPromptTests`, `RunContextWindowTests`, `RunConversationTests`.
+A: Yes! Edit `config/settings.json` and set `runPromptTests`, `runContextWindowTests`, or `runConversationTests` to `false`.
+
+**Q: How do I add my own tests?**
+A: Edit the JSON files in `config/tests/`. See the "Adding Custom Tests" section above.
 
 ---
 
-**Made with ☕ by [ChoonForge](https://github.com/ChoonForge)**
+**Made by [ChoonForge](https://github.com/ChoonForge)**
