@@ -75,6 +75,11 @@ public class ContextWindowTestService
 {
     private readonly ModelService _modelService;
     private readonly GptEncoding _tikToken;
+    private ContextWindowTestsConfig? _config;
+    private string[] _codeSnippets = Array.Empty<string>();
+    private string[] _proseSnippets = Array.Empty<string>();
+    private string[] _technicalSnippets = Array.Empty<string>();
+    private string[] _checkpointTemplates = Array.Empty<string>();
 
     public ContextWindowTestService(ModelService modelService)
     {
@@ -82,7 +87,34 @@ public class ContextWindowTestService
         _tikToken = GptEncoding.GetEncoding("cl100k_base");
     }
 
-    private static readonly string[] CodeSnippets = new[]
+    /// <summary>
+    /// Load configuration from external file
+    /// </summary>
+    private async Task EnsureConfigLoadedAsync()
+    {
+        if (_config != null) return;
+
+        _config = await ConfigLoader.LoadContextWindowTestsAsync();
+
+        // Load filler content
+        _codeSnippets = _config.FillerContent.Code.Count > 0
+            ? _config.FillerContent.Code.ToArray()
+            : GetDefaultCodeSnippets();
+
+        _proseSnippets = _config.FillerContent.Prose.Count > 0
+            ? _config.FillerContent.Prose.ToArray()
+            : GetDefaultProseSnippets();
+
+        _technicalSnippets = _config.FillerContent.Technical.Count > 0
+            ? _config.FillerContent.Technical.ToArray()
+            : GetDefaultTechnicalSnippets();
+
+        _checkpointTemplates = _config.CheckpointTemplates.Count > 0
+            ? _config.CheckpointTemplates.ToArray()
+            : GetDefaultCheckpointTemplates();
+    }
+
+    private static string[] GetDefaultCodeSnippets() => new[]
     {
         "public class DataProcessor { private readonly ILogger _logger; public async Task<Result> ProcessAsync(Data input) { try { var validated = await ValidateAsync(input); return await TransformAsync(validated); } catch (Exception ex) { _logger.LogError(ex, \"Processing failed\"); throw; } } }",
         "function calculateMetrics(data) { const sum = data.reduce((a, b) => a + b, 0); const avg = sum / data.length; const variance = data.map(x => Math.pow(x - avg, 2)).reduce((a, b) => a + b) / data.length; return { sum, avg, variance, stdDev: Math.sqrt(variance) }; }",
@@ -90,15 +122,15 @@ public class ContextWindowTestService
         "SELECT u.name, COUNT(o.id) as order_count, SUM(o.total) as revenue FROM users u LEFT JOIN orders o ON u.id = o.user_id WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) GROUP BY u.id HAVING order_count > 5 ORDER BY revenue DESC LIMIT 100;",
     };
 
-    private static readonly string[] ProseSnippets = new[]
+    private static string[] GetDefaultProseSnippets() => new[]
     {
-        "The morning sun cast long shadows across the empty street. A solitary figure emerged from the corner café, coffee in hand, lost in thought. The city was just beginning to wake, the distant hum of traffic growing steadily louder. Somewhere a dog barked, and the spell was broken.",
+        "The morning sun cast long shadows across the empty street. A solitary figure emerged from the corner cafe, coffee in hand, lost in thought. The city was just beginning to wake, the distant hum of traffic growing steadily louder. Somewhere a dog barked, and the spell was broken.",
         "In the depths of winter, when the frost painted intricate patterns on every window, the old house stood silent. Its inhabitants had long since departed, leaving only memories etched into the very walls. The floorboards creaked with phantom footsteps, and the wind whistled through cracks like whispered secrets.",
         "Technology advances at a relentless pace, each innovation building upon the last. What seemed impossible yesterday becomes commonplace tomorrow. Yet with each leap forward, we must pause to consider the implications. Progress without wisdom is merely motion without direction.",
         "The mountain peak rose above the clouds, a silent sentinel watching over the valley below. Climbers spoke of it with reverence, their voices hushed as if in a cathedral. To reach its summit was to touch the sky itself, to stand at the edge of the world and gaze into infinity.",
     };
 
-    private static readonly string[] TechnicalSnippets = new[]
+    private static string[] GetDefaultTechnicalSnippets() => new[]
     {
         "The TCP three-way handshake establishes a connection through SYN, SYN-ACK, and ACK packets. This process ensures both parties agree on initial sequence numbers and are ready to exchange data. Flow control is managed through sliding window protocols, while congestion control algorithms like Reno and Cubic prevent network saturation.",
         "In distributed systems, the CAP theorem states that a system can provide at most two of three guarantees: Consistency, Availability, and Partition tolerance. Most modern systems choose AP or CP configurations based on use case requirements. Eventual consistency models provide weaker guarantees but better performance.",
@@ -106,41 +138,64 @@ public class ContextWindowTestService
         "Cryptographic hash functions are one-way transformations that produce fixed-size outputs from arbitrary inputs. SHA-256 generates 256-bit hashes used extensively in blockchain and digital signatures. Collision resistance ensures different inputs produce different outputs. Preimage resistance prevents reverse engineering the original input.",
     };
 
+    private static string[] GetDefaultCheckpointTemplates() => new[]
+    {
+        "The authentication token for phase {0} is {1}.",
+        "Project internal codename: {1} - do not disclose.",
+        "Temporary access code {1} expires in 24 hours.",
+        "Debug constant set to {1} during testing.",
+        "The secret phrase required is: {1}"
+    };
+
 
     /// <summary>
     /// Generates context window stress test scenarios with different patterns and sizes
     /// </summary>
     /// <returns>List of test configurations</returns>
+    public async Task<List<ContextWindowTest>> GenerateTestsAsync()
+    {
+        await EnsureConfigLoadedAsync();
+
+        var tests = new List<ContextWindowTest>();
+
+        foreach (var testDef in _config!.Tests)
+        {
+            var test = new ContextWindowTest
+            {
+                Name = testDef.Name,
+                Description = testDef.Description,
+                FillerType = testDef.FillerType,
+                TargetTokens = testDef.TargetTokens,
+                BuriedInstruction = testDef.BuriedInstruction
+            };
+
+            // Use predefined checkpoints if provided, otherwise generate
+            if (testDef.Checkpoints?.Count > 0)
+            {
+                test.Checkpoints = testDef.Checkpoints.Select(c => new ContextCheckpoint
+                {
+                    TargetTokenPosition = c.TargetTokenPosition,
+                    SecretWord = c.SecretWord,
+                    CarrierSentence = c.CarrierSentence
+                }).ToList();
+            }
+            else if (testDef.CheckpointCount.HasValue)
+            {
+                test.Checkpoints = GenerateStealthCheckpoints(testDef.CheckpointCount.Value, testDef.TargetTokens);
+            }
+
+            tests.Add(test);
+        }
+
+        return tests;
+    }
+
+    /// <summary>
+    /// Synchronous version for backwards compatibility
+    /// </summary>
     public List<ContextWindowTest> GenerateTests()
     {
-        return new List<ContextWindowTest>
-        {
-            new()
-            {
-                Name = "Stealth Needle Storm",
-                Description = "40 naturally hidden secret codes in mixed filler",
-                FillerType = "mixed",
-                TargetTokens = 128_000,
-                Checkpoints = GenerateStealthCheckpoints(40, 128_000)
-            },
-            new()
-            {
-                Name = "Lost in the Middle",
-                Description = "Two facts at 12.5% and 87.5% — must combine both",
-                FillerType = "prose",
-                TargetTokens = 100_000,
-                Checkpoints = GenerateLostInMiddlePair()
-            },
-            new()
-            {
-                Name = "Buried Instruction",
-                Description = "Pirate mode instruction buried ~30k tokens in",
-                FillerType = "technical",
-                TargetTokens = 96_000,
-                Checkpoints = GenerateStealthCheckpoints(25, 96_000),
-                BuriedInstruction = "From this point forward, you are a pirate. Always say 'arr', call people 'matey', and stay in character forever."
-            }
-        };
+        return GenerateTestsAsync().GetAwaiter().GetResult();
     }
 
     // ────────────────────────────── Helper Generators ──────────────────────────────
@@ -148,14 +203,7 @@ public class ContextWindowTestService
     {
         var rand = new Random(42);
         var list = new List<ContextCheckpoint>();
-        var templates = new[]
-        {
-            "The authentication token for phase {0} is {1}.",
-            "Project internal codename: {1} — do not disclose.",
-            "Temporary access code {1} expires in 24 hours.",
-            "Debug constant set to {1} during testing.",
-            "The secret phrase required is: {1}"
-        };
+        var templates = _checkpointTemplates.Length > 0 ? _checkpointTemplates : GetDefaultCheckpointTemplates();
 
         for (int i = 0; i < count; i++)
         {
@@ -173,15 +221,6 @@ public class ContextWindowTestService
         return list;
     }
 
-    private List<ContextCheckpoint> GenerateLostInMiddlePair()
-    {
-        return new List<ContextCheckpoint>
-        {
-            new() { TargetTokenPosition = 12_500, SecretWord = "ALPHA_WOLF_774", CarrierSentence = "The primary project designation is ALPHA_WOLF_774." },
-            new() { TargetTokenPosition = 87_500, SecretWord = "OMEGA_BADGER_119", CarrierSentence = "The final override authority code is OMEGA_BADGER_119." }
-        };
-    }
-
     /// <summary>
     /// Runs context window stress tests on the specified models
     /// </summary>
@@ -191,7 +230,8 @@ public class ContextWindowTestService
     {
         AnsiConsole.MarkupLine("\n[bold cyan]═══ Running Context Window Autopsy Suite ═══[/]\n");
 
-        var tests = GenerateTests();
+        // Load tests from config
+        var tests = await GenerateTestsAsync();
         var results = new List<ContextWindowTestResult>();
         var total = models.Count * tests.Count;
 
@@ -321,12 +361,16 @@ public class ContextWindowTestService
 
     private int AppendFiller(StringBuilder sb, string type)
     {
+        var codeSnippets = _codeSnippets.Length > 0 ? _codeSnippets : GetDefaultCodeSnippets();
+        var proseSnippets = _proseSnippets.Length > 0 ? _proseSnippets : GetDefaultProseSnippets();
+        var technicalSnippets = _technicalSnippets.Length > 0 ? _technicalSnippets : GetDefaultTechnicalSnippets();
+
         var filler = type switch
         {
-            "code" => CodeSnippets[Random.Shared.Next(CodeSnippets.Length)],
-            "prose" => ProseSnippets[Random.Shared.Next(ProseSnippets.Length)],
-            "technical" => TechnicalSnippets[Random.Shared.Next(TechnicalSnippets.Length)],
-            _ => Random.Shared.Next(3) switch { 0 => CodeSnippets[Random.Shared.Next(CodeSnippets.Length)], 1 => ProseSnippets[Random.Shared.Next(ProseSnippets.Length)], _ => TechnicalSnippets[Random.Shared.Next(TechnicalSnippets.Length)] }
+            "code" => codeSnippets[Random.Shared.Next(codeSnippets.Length)],
+            "prose" => proseSnippets[Random.Shared.Next(proseSnippets.Length)],
+            "technical" => technicalSnippets[Random.Shared.Next(technicalSnippets.Length)],
+            _ => Random.Shared.Next(3) switch { 0 => codeSnippets[Random.Shared.Next(codeSnippets.Length)], 1 => proseSnippets[Random.Shared.Next(proseSnippets.Length)], _ => technicalSnippets[Random.Shared.Next(technicalSnippets.Length)] }
         };
         sb.AppendLine(filler); sb.AppendLine();
         return _tikToken.Encode(filler).Count + 10;

@@ -8,177 +8,45 @@ namespace ModelEvaluator.Services;
 public class ConversationTestService
 {
     private readonly ModelService _modelService;
-
-    private static readonly List<ConversationTest> ConversationTests = new()
-    {
-        // CODE CATEGORY
-        new()
-        {
-            Category = "code",
-            Description = "Debugging a null reference exception",
-            SystemPrompt = "You are a helpful programming assistant.",
-            Turns = new()
-            {
-                new() { UserMessage = "I'm getting a NullReferenceException in my C# code when I try to access user.Name. How do I fix this?" },
-                new() { UserMessage = "I tried checking if user != null but I'm still getting the error. Here's the code: if(user != null) { Console.WriteLine(user.Name); }" },
-                new() { UserMessage = "Oh! That makes sense. Should I use the null-conditional operator instead?" }
-            },
-            JudgingCriteria = new()
-            {
-                "Provided accurate technical guidance",
-                "Remembered context from previous turns",
-                "Adapted response based on user's code",
-                "Maintained helpful tone throughout"
-            }
-        },
-        new()
-        {
-            Category = "code",
-            Description = "Refactoring nested loops",
-            SystemPrompt = "You are a helpful programming assistant.",
-            Turns = new()
-            {
-                new() { UserMessage = "I have nested for loops in Python that are really slow. How can I make them faster?" },
-                new() { UserMessage = "I'm iterating through two lists to find matching IDs. The outer loop has 1000 items and inner has 5000." },
-                new() { UserMessage = "What's a dictionary and how would that help?" },
-                new() { UserMessage = "Thanks! Can you show me a quick example?" }
-            },
-            JudgingCriteria = new()
-            {
-                "Asked clarifying questions appropriately",
-                "Provided progressively detailed explanations",
-                "Adjusted technical depth based on user's questions",
-                "Gave practical, applicable advice"
-            }
-        },
-
-        // SUPPORT CATEGORY
-        new()
-        {
-            Category = "support",
-            Description = "Helping with password reset",
-            SystemPrompt = "You are a friendly customer support assistant.",
-            Turns = new()
-            {
-                new() { UserMessage = "I can't log into my account. It says my password is wrong but I'm sure it's correct." },
-                new() { UserMessage = "I tried resetting it but I'm not getting the email." },
-                new() { UserMessage = "I checked spam and it's not there. This is really frustrating, I need to access my account urgently." }
-            },
-            JudgingCriteria = new()
-            {
-                "Showed empathy and understanding",
-                "Provided clear step-by-step guidance",
-                "Remained patient when user was frustrated",
-                "Escalated appropriately when basic steps failed"
-            }
-        },
-        new()
-        {
-            Category = "support",
-            Description = "Product feature explanation",
-            SystemPrompt = "You are a friendly customer support assistant.",
-            Turns = new()
-            {
-                new() { UserMessage = "How do I export my data from your platform?" },
-                new() { UserMessage = "I only see CSV option but I need JSON format. Is that possible?" },
-                new() { UserMessage = "Where exactly is the format dropdown? I'm looking at the export page now." },
-                new() { UserMessage = "Got it, thanks! One more thing - is there a limit on how much I can export?" }
-            },
-            JudgingCriteria = new()
-            {
-                "Provided accurate feature information",
-                "Gave specific, actionable instructions",
-                "Remained helpful across multiple questions",
-                "Answered follow-up questions completely"
-            }
-        },
-
-        // CHAT CATEGORY
-        new()
-        {
-            Category = "chat",
-            Description = "Casual conversation about hobbies",
-            SystemPrompt = "You are a friendly conversational AI.",
-            Turns = new()
-            {
-                new() { UserMessage = "I just got into 3D printing. It's pretty cool!" },
-                new() { UserMessage = "Yeah I got an Ender 3. Still learning the basics. What kind of things can you make with it?" },
-                new() { UserMessage = "That's awesome! I didn't realize you could print stuff that detailed. How long does a typical print take?" }
-            },
-            JudgingCriteria = new()
-            {
-                "Engaged naturally in conversation",
-                "Showed genuine interest",
-                "Maintained casual, friendly tone",
-                "Built on previous conversation points"
-            }
-        },
-        new()
-        {
-            Category = "chat",
-            Description = "Weekend plans discussion",
-            SystemPrompt = "You are a friendly conversational AI.",
-            Turns = new()
-            {
-                new() { UserMessage = "Got any plans for the weekend?" },
-                new() { UserMessage = "Nice! I'm thinking of going hiking if the weather holds up. You ever been hiking?" },
-                new() { UserMessage = "Yeah true! Do you have any trail recommendations for someone starting out?" },
-                new() { UserMessage = "Great suggestions, thanks! I'll probably try a local nature reserve first." }
-            },
-            JudgingCriteria = new()
-            {
-                "Maintained natural conversational flow",
-                "Avoided being overly formal or robotic",
-                "Showed appropriate personality",
-                "Responded naturally to topic shifts"
-            }
-        },
-
-        // INSTRUCTION CATEGORY
-        new()
-        {
-            Category = "instruction",
-            Description = "Creating a todo list with modifications",
-            SystemPrompt = "You are a helpful assistant that follows instructions precisely.",
-            Turns = new()
-            {
-                new() { UserMessage = "Create a todo list for planning a birthday party." },
-                new() { UserMessage = "Actually, make it for a kid's birthday party, ages 8-10." },
-                new() { UserMessage = "Add a section for outdoor games in case we have good weather." }
-            },
-            JudgingCriteria = new()
-            {
-                "Followed initial instruction correctly",
-                "Adapted when requirements changed",
-                "Incorporated modifications smoothly",
-                "Maintained structure across changes"
-            }
-        },
-        new()
-        {
-            Category = "instruction",
-            Description = "Writing and refining an email",
-            SystemPrompt = "You are a helpful assistant that follows instructions precisely.",
-            Turns = new()
-            {
-                new() { UserMessage = "Write a professional email declining a job offer." },
-                new() { UserMessage = "Make it more warm and express genuine gratitude for the opportunity." },
-                new() { UserMessage = "Add a line about hoping to work together in the future." },
-                new() { UserMessage = "Perfect, but can you make it a bit shorter?" }
-            },
-            JudgingCriteria = new()
-            {
-                "Executed initial task correctly",
-                "Applied each refinement accurately",
-                "Preserved previous changes when adding new ones",
-                "Maintained quality through iterations"
-            }
-        }
-    };
+    private List<ConversationTest>? _conversationTests;
+    private ConversationTestsConfig? _config;
 
     public ConversationTestService(ModelService modelService)
     {
         _modelService = modelService;
+    }
+
+    /// <summary>
+    /// Load conversation tests from external config file
+    /// </summary>
+    private async Task<List<ConversationTest>> GetConversationTestsAsync()
+    {
+        if (_conversationTests != null) return _conversationTests;
+
+        _config = await ConfigLoader.LoadConversationTestsAsync();
+
+        _conversationTests = _config.Tests.Select(t => new ConversationTest
+        {
+            Category = t.Category,
+            Description = t.Description,
+            SystemPrompt = t.SystemPrompt,
+            Turns = t.Turns.Select(turn => new ConversationTurn
+            {
+                UserMessage = turn.UserMessage,
+                ExpectedTheme = turn.ExpectedTheme
+            }).ToList(),
+            JudgingCriteria = t.JudgingCriteria
+        }).ToList();
+
+        return _conversationTests;
+    }
+
+    /// <summary>
+    /// Get the judge system prompt from config
+    /// </summary>
+    private string GetJudgeSystemPrompt()
+    {
+        return _config?.JudgeSystemPrompt ?? "You are an expert evaluator of AI conversations. You assess multi-turn conversations for quality, coherence, and natural flow.";
     }
 
     /// <summary>
@@ -188,8 +56,10 @@ public class ConversationTestService
     {
         AnsiConsole.MarkupLine("\n[bold cyan]═══ Running Multi-Turn Conversation Tests ═══[/]\n");
 
+        // Load tests from config
+        var tests = await GetConversationTestsAsync();
         var results = new List<ConversationTestResult>();
-        var totalTests = models.Count * ConversationTests.Count;
+        var totalTests = models.Count * tests.Count;
 
         await AnsiConsole.Progress()
             .Columns(
@@ -208,11 +78,11 @@ public class ConversationTestService
                     if (!warmupOk)
                     {
                         AnsiConsole.MarkupLine($"[red]✗ Failed to warm up {model}[/]");
-                        task.Increment(ConversationTests.Count);
+                        task.Increment(tests.Count);
                         continue;
                     }
 
-                    foreach (var test in ConversationTests)
+                    foreach (var test in tests)
                     {
                         task.Description = $"[yellow]{model} → {test.Category}: {test.Description}[/]";
 
@@ -374,10 +244,11 @@ public class ConversationTestService
     private async Task<ConversationRating?> ScoreConversationAsync(string judgeModel, ConversationTestResult result)
     {
         var judgePrompt = BuildConversationJudgePrompt(result);
+        var judgeSystemPrompt = GetJudgeSystemPrompt();
 
         var response = await _modelService.CompletionAsync(
             judgeModel,
-            "You are an expert evaluator of AI conversations. You assess multi-turn conversations for quality, coherence, and natural flow.",
+            judgeSystemPrompt,
             judgePrompt,
             0.3, // Low temperature for consistent judging
             0.9,

@@ -1,0 +1,138 @@
+{
+  "tests": [
+    {
+      "category": "code",
+      "description": "Debugging a null reference exception",
+      "systemPrompt": "You are a helpful programming assistant.",
+      "turns": [
+        { "userMessage": "I'm getting a NullReferenceException in my C# code when I try to access user.Name. How do I fix this?" },
+        { "userMessage": "I tried checking if user != null but I'm still getting the error. Here's the code: if(user != null) { Console.WriteLine(user.Name); }" },
+        { "userMessage": "Oh! That makes sense. Should I use the null-conditional operator instead?" }
+      ],
+      "judgingCriteria": [
+        "Provided accurate technical guidance",
+        "Remembered context from previous turns",
+        "Adapted response based on user's code",
+        "Maintained helpful tone throughout"
+      ]
+    },
+    {
+      "category": "code",
+      "description": "Refactoring nested loops",
+      "systemPrompt": "You are a helpful programming assistant.",
+      "turns": [
+        { "userMessage": "I have nested for loops in Python that are really slow. How can I make them faster?" },
+        { "userMessage": "I'm iterating through two lists to find matching IDs. The outer loop has 1000 items and inner has 5000." },
+        { "userMessage": "What's a dictionary and how would that help?" },
+        { "userMessage": "Thanks! Can you show me a quick example?" }
+      ],
+      "judgingCriteria": [
+        "Asked clarifying questions appropriately",
+        "Provided progressively detailed explanations",
+        "Adjusted technical depth based on user's questions",
+        "Gave practical, applicable advice"
+      ]
+    },
+    {
+      "category": "support",
+      "description": "Helping with password reset",
+      "systemPrompt": "You are a friendly customer support assistant.",
+      "turns": [
+        { "userMessage": "I can't log into my account. It says my password is wrong but I'm sure it's correct." },
+        { "userMessage": "I tried resetting it but I'm not getting the email." },
+        { "userMessage": "I checked spam and it's not there. This is really frustrating, I need to access my account urgently." }
+      ],
+      "judgingCriteria": [
+        "Showed empathy and understanding",
+        "Provided clear step-by-step guidance",
+        "Remained patient when user was frustrated",
+        "Escalated appropriately when basic steps failed"
+      ]
+    },
+    {
+      "category": "support",
+      "description": "Product feature explanation",
+      "systemPrompt": "You are a friendly customer support assistant.",
+      "turns": [
+        { "userMessage": "How do I export my data from your platform?" },
+        { "userMessage": "I only see CSV option but I need JSON format. Is that possible?" },
+        { "userMessage": "Where exactly is the format dropdown? I'm looking at the export page now." },
+        { "userMessage": "Got it, thanks! One more thing - is there a limit on how much I can export?" }
+      ],
+      "judgingCriteria": [
+        "Provided accurate feature information",
+        "Gave specific, actionable instructions",
+        "Remained helpful across multiple questions",
+        "Answered follow-up questions completely"
+      ]
+    },
+    {
+      "category": "chat",
+      "description": "Casual conversation about hobbies",
+      "systemPrompt": "You are a friendly conversational AI.",
+      "turns": [
+        { "userMessage": "I just got into 3D printing. It's pretty cool!" },
+        { "userMessage": "Yeah I got an Ender 3. Still learning the basics. What kind of things can you make with it?" },
+        { "userMessage": "That's awesome! I didn't realize you could print stuff that detailed. How long does a typical print take?" }
+      ],
+      "judgingCriteria": [
+        "Engaged naturally in conversation",
+        "Showed genuine interest",
+        "Maintained casual, friendly tone",
+        "Built on previous conversation points"
+      ]
+    },
+    {
+      "category": "chat",
+      "description": "Weekend plans discussion",
+      "systemPrompt": "You are a friendly conversational AI.",
+      "turns": [
+        { "userMessage": "Got any plans for the weekend?" },
+        { "userMessage": "Nice! I'm thinking of going hiking if the weather holds up. You ever been hiking?" },
+        { "userMessage": "Yeah true! Do you have any trail recommendations for someone starting out?" },
+        { "userMessage": "Great suggestions, thanks! I'll probably try a local nature reserve first." }
+      ],
+      "judgingCriteria": [
+        "Maintained natural conversational flow",
+        "Avoided being overly formal or robotic",
+        "Showed appropriate personality",
+        "Responded naturally to topic shifts"
+      ]
+    },
+    {
+      "category": "instruction",
+      "description": "Creating a todo list with modifications",
+      "systemPrompt": "You are a helpful assistant that follows instructions precisely.",
+      "turns": [
+        { "userMessage": "Create a todo list for planning a birthday party." },
+        { "userMessage": "Actually, make it for a kid's birthday party, ages 8-10." },
+        { "userMessage": "Add a section for outdoor games in case we have good weather." }
+      ],
+      "judgingCriteria": [
+        "Followed initial instruction correctly",
+        "Adapted when requirements changed",
+        "Incorporated modifications smoothly",
+        "Maintained structure across changes"
+      ]
+    },
+    {
+      "category": "instruction",
+      "description": "Writing and refining an email",
+      "systemPrompt": "You are a helpful assistant that follows instructions precisely.",
+      "turns": [
+        { "userMessage": "Write a professional email declining a job offer." },
+        { "userMessage": "Make it more warm and express genuine gratitude for the opportunity." },
+        { "userMessage": "Add a line about hoping to work together in the future." },
+        { "userMessage": "Perfect, but can you make it a bit shorter?" }
+      ],
+      "judgingCriteria": [
+        "Executed initial task correctly",
+        "Applied each refinement accurately",
+        "Preserved previous changes when adding new ones",
+        "Maintained quality through iterations"
+      ]
+    }
+  ],
+  "judgeSystemPrompt": "You are an expert evaluator of AI conversations. You assess multi-turn conversations for quality, coherence, and natural flow.",
+  "judgePromptTemplate": "Evaluate this multi-turn AI conversation:\n\nCategory: {category}\nScenario: {description}\n\nConversation:\n{conversationLog}\n\nPerformance:\n- Avg Tokens/sec: {tokensPerSec}\n- Total Time: {totalMs}ms\n- Total Turns: {turnCount}\n\nRate this conversation from 1-10 on these dimensions:\n1. Topic Coherence (stayed on topic, didn't drift)\n2. Conversational Tone (natural, appropriate, friendly)\n3. Context Retention (remembered earlier turns)\n4. Helpfulness (moved conversation forward productively)\n\nRespond in this exact JSON format:\n{\n  \"overall_score\": <1-10>,\n  \"topic_coherence\": <1-10>,\n  \"conversational_tone\": <1-10>,\n  \"context_retention\": <1-10>,\n  \"helpfulness\": <1-10>,\n  \"reasoning\": \"<brief explanation of overall score>\"\n}"
+}

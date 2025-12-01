@@ -1,0 +1,103 @@
+{
+  "tests": [
+    {
+      "prompt": "Output exactly these three words in this order, separated by single spaces: Red Blue Green. Do not add punctuation, quotes, or anything else.",
+      "expectedResult": "Red Blue Green",
+      "validationType": "words",
+      "strictOrder": true,
+      "category": "basic_compliance"
+    },
+    {
+      "prompt": "Calculate: 7 + 8. Respond with the single integer result ONLY. No text, no symbols, no explanation.",
+      "expectedResult": "15",
+      "validationType": "numeric",
+      "strictOrder": true,
+      "category": "basic_compliance"
+    },
+    {
+      "prompt": "Return a JSON object with one field 'status' set to 'ok'. Output ONLY valid JSON, no markdown code blocks, no explanation, no text before or after.",
+      "expectedResult": "{\"status\":\"ok\"}",
+      "validationType": "json",
+      "strictOrder": true,
+      "category": "json_output"
+    },
+    {
+      "prompt": "Return a JSON array containing exactly the numbers 1,2,3 as integers, *NOT* strings. Output ONLY the JSON array, no markdown, no text, nothing else.",
+      "expectedResult": "[1,2,3]",
+      "validationType": "json",
+      "strictOrder": true,
+      "category": "json_output"
+    },
+    {
+      "prompt": "Create a JSON object with two fields: 'name' set to 'Alice' and 'age' set to the integer 25. Output ONLY the JSON, no markdown, no explanation.",
+      "expectedResult": "{\"name\":\"Alice\",\"age\":25}",
+      "validationType": "json",
+      "strictOrder": true,
+      "category": "json_output"
+    },
+    {
+      "prompt": "You have a tool called 'get_weather' that takes a parameter 'city' (string). Call this tool for London. Return ONLY this JSON, nothing else: {\"tool\":\"get_weather\",\"parameters\":{\"city\":\"London\"}}",
+      "expectedResult": "{\"tool\":\"get_weather\",\"parameters\":{\"city\":\"London\"}}",
+      "validationType": "json",
+      "strictOrder": true,
+      "category": "tool_calling"
+    },
+    {
+      "prompt": "Call the function 'list_projects' with no parameters. Return ONLY the JSON tool call in this format: {\"tool\":\"list_projects\",\"parameters\":{}}",
+      "expectedResult": "{\"tool\":\"list_projects\",\"parameters\":{}}",
+      "validationType": "json",
+      "strictOrder": true,
+      "category": "tool_calling"
+    },
+    {
+      "prompt": "You have a function 'calculate' that takes two integer parameters: 'a' and 'b'. Call it with a=10 and b=20. Return ONLY: {\"tool\":\"calculate\",\"parameters\":{\"a\":10,\"b\":20}}",
+      "expectedResult": "{\"tool\":\"calculate\",\"parameters\":{\"a\":10,\"b\":20}}",
+      "validationType": "json",
+      "strictOrder": true,
+      "category": "tool_calling"
+    },
+    {
+      "prompt": "List three colors, one per line, no numbers, no bullets, no punctuation. Just the color names.",
+      "expectedResult": "Red\nBlue\nGreen",
+      "validationType": "lines",
+      "strictOrder": false,
+      "category": "format_constraints"
+    },
+    {
+      "prompt": "Output the word 'SUCCESS' in all caps. Nothing else. No punctuation, no explanation.",
+      "expectedResult": "SUCCESS",
+      "validationType": "exact",
+      "strictOrder": true,
+      "category": "format_constraints"
+    },
+    {
+      "prompt": "What is 12 * 3? Respond with only the number.",
+      "expectedResult": "36",
+      "validationType": "numeric",
+      "strictOrder": true,
+      "category": "simple_calculations"
+    },
+    {
+      "prompt": "Calculate 100 - 37. Output only the integer result.",
+      "expectedResult": "63",
+      "validationType": "numeric",
+      "strictOrder": true,
+      "category": "simple_calculations"
+    },
+    {
+      "prompt": "Is 10 greater than 5? Respond with ONLY 'true' or 'false' in lowercase.",
+      "expectedResult": "true",
+      "validationType": "boolean",
+      "strictOrder": true,
+      "category": "boolean_output"
+    },
+    {
+      "prompt": "Is 'cat' the same as 'dog'? Respond with ONLY 'true' or 'false' in lowercase.",
+      "expectedResult": "false",
+      "validationType": "boolean",
+      "strictOrder": true,
+      "category": "boolean_output"
+    }
+  ],
+  "systemPrompt": "You are an instruction-following test system. Output ONLY the exact requested content. Any deviation = failure. No preamble. No explanation. Raw output only."
+}

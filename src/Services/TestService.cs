@@ -8,117 +8,41 @@ namespace ModelEvaluator.Services;
 public class TestService
 {
     private readonly ModelService _modelService;
-
-    private static readonly List<InstructionTest> InstructionTests = new()
-    {
-        // === BASIC COMPLIANCE ===
-        new()
-        {
-            Prompt = "Output exactly these three words in this order, separated by single spaces: Red Blue Green. Do not add punctuation, quotes, or anything else.",
-            ExpectedResult = "Red Blue Green",
-            ValidationType = "words",  // Changed: allows case/order flexibility
-            StrictOrder = true
-        },
-        new()
-        {
-            Prompt = "Calculate: 7 + 8. Respond with the single integer result ONLY. No text, no symbols, no explanation.",
-            ExpectedResult = "15",
-            ValidationType = "numeric"
-        },
-        
-        // === JSON OUTPUT ===
-        new()
-        {
-            Prompt = "Return a JSON object with one field 'status' set to 'ok'. Output ONLY valid JSON, no markdown code blocks, no explanation, no text before or after.",
-            ExpectedResult = "{\"status\":\"ok\"}",
-            ValidationType = "json"
-        },
-        new()
-        {
-            Prompt = "Return a JSON array containing exactly the numbers 1,2,3 as integers, *NOT* strings. Output ONLY the JSON array, no markdown, no text, nothing else.",
-            ExpectedResult = "[1,2,3]",
-            ValidationType = "json"
-        },
-        new()
-        {
-            Prompt = "Create a JSON object with two fields: 'name' set to 'Alice' and 'age' set to the integer 25. Output ONLY the JSON, no markdown, no explanation.",
-            ExpectedResult = "{\"name\":\"Alice\",\"age\":25}",
-            ValidationType = "json"
-        },
-        
-        // === TOOL CALLING FORMAT ===
-        new()
-        {
-            Prompt = "You have a tool called 'get_weather' that takes a parameter 'city' (string). Call this tool for London. Return ONLY this JSON, nothing else: {\"tool\":\"get_weather\",\"parameters\":{\"city\":\"London\"}}",
-            ExpectedResult = "{\"tool\":\"get_weather\",\"parameters\":{\"city\":\"London\"}}",
-            ValidationType = "json"
-        },
-        new()
-        {
-            Prompt = "Call the function 'list_projects' with no parameters. Return ONLY the JSON tool call in this format: {\"tool\":\"list_projects\",\"parameters\":{}}",
-            ExpectedResult = "{\"tool\":\"list_projects\",\"parameters\":{}}",
-            ValidationType = "json"
-        },
-        new()
-        {
-            Prompt = "You have a function 'calculate' that takes two integer parameters: 'a' and 'b'. Call it with a=10 and b=20. Return ONLY: {\"tool\":\"calculate\",\"parameters\":{\"a\":10,\"b\":20}}",
-            ExpectedResult = "{\"tool\":\"calculate\",\"parameters\":{\"a\":10,\"b\":20}}",
-            ValidationType = "json"
-        },
-        
-        // === FORMAT CONSTRAINTS ===
-        new()
-        {
-            Prompt = "List three colors, one per line, no numbers, no bullets, no punctuation. Just the color names.",
-            ExpectedResult = "Red\nBlue\nGreen",
-            ValidationType = "lines",  // Changed: validates line-by-line content
-            StrictOrder = false
-        },
-        new()
-        {
-            Prompt = "Output the word 'SUCCESS' in all caps. Nothing else. No punctuation, no explanation.",
-            ExpectedResult = "SUCCESS",
-            ValidationType = "exact"
-        },
-        
-        // === SIMPLE CALCULATIONS ===
-        new()
-        {
-            Prompt = "What is 12 * 3? Respond with only the number.",
-            ExpectedResult = "36",
-            ValidationType = "numeric"
-        },
-        new()
-        {
-            Prompt = "Calculate 100 - 37. Output only the integer result.",
-            ExpectedResult = "63",
-            ValidationType = "numeric"
-        },
-        
-        // === BOOLEAN OUTPUT ===
-        new()
-        {
-            Prompt = "Is 10 greater than 5? Respond with ONLY 'true' or 'false' in lowercase.",
-            ExpectedResult = "true",
-            ValidationType = "boolean"
-        },
-        new()
-        {
-            Prompt = "Is 'cat' the same as 'dog'? Respond with ONLY 'true' or 'false' in lowercase.",
-            ExpectedResult = "false",
-            ValidationType = "boolean"
-        }
-    };
+    private List<InstructionTest>? _instructionTests;
+    private string _systemPrompt = "";
 
     public TestService(ModelService modelService)
     {
         _modelService = modelService;
     }
 
+    /// <summary>
+    /// Load instruction tests from external config file
+    /// </summary>
+    private async Task<List<InstructionTest>> GetInstructionTestsAsync()
+    {
+        if (_instructionTests != null) return _instructionTests;
+
+        var config = await ConfigLoader.LoadInstructionTestsAsync();
+        _systemPrompt = config.SystemPrompt;
+
+        _instructionTests = config.Tests.Select(t => new InstructionTest
+        {
+            Prompt = t.Prompt,
+            ExpectedResult = t.ExpectedResult,
+            ValidationType = t.ValidationType,
+            StrictOrder = t.StrictOrder
+        }).ToList();
+
+        return _instructionTests;
+    }
+
     public async Task<List<InstructionTestResult>> RunInstructionTestsAsync(List<string> models)
     {
         AnsiConsole.MarkupLine("\n[bold cyan]═══ Running Instruction Following Tests ═══[/]\n");
 
+        // Load tests from config
+        var tests = await GetInstructionTestsAsync();
         var results = new List<InstructionTestResult>();
 
         await AnsiConsole.Progress()
@@ -135,7 +59,7 @@ public class TestService
                 {
                     task.Description = $"[yellow]Testing {model}[/]";
 
-                    var result = await RunTestsForModelAsync(model);
+                    var result = await RunTestsForModelAsync(model, tests);
                     if (result != null)
                         results.Add(result);
 
@@ -152,7 +76,7 @@ public class TestService
         return results;
     }
 
-    private async Task<InstructionTestResult?> RunTestsForModelAsync(string modelName)
+    private async Task<InstructionTestResult?> RunTestsForModelAsync(string modelName, List<InstructionTest> tests)
     {
         var warmupOk = await _modelService.WarmUpModelAsync(modelName);
         if (!warmupOk)
@@ -164,16 +88,21 @@ public class TestService
         var result = new InstructionTestResult
         {
             ModelName = modelName,
-            TotalTests = InstructionTests.Count
+            TotalTests = tests.Count
         };
 
         var perfMetrics = new List<PerfMetrics>();
 
-        foreach (var test in InstructionTests)
+        // Use system prompt from config, fallback to default if empty
+        var systemPrompt = !string.IsNullOrEmpty(_systemPrompt)
+            ? _systemPrompt
+            : "You are an instruction-following test system. Output ONLY the exact requested content. Any deviation = failure. No preamble. No explanation. Raw output only.";
+
+        foreach (var test in tests)
         {
             var response = await _modelService.CompletionAsync(
                 modelName,
-                "You are an instruction-following test system. Output ONLY the exact requested content. Any deviation = failure. No preamble. No explanation. Raw output only.",
+                systemPrompt,
                 test.Prompt,
                 Config.InstructionTestTemperature,
                 Config.InstructionTestTopP,
